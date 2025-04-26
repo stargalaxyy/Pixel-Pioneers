@@ -3,6 +3,8 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
+import subprocess
+
 
 # ---------- Morphological Operations (Manual) ----------
 def get_mask():
@@ -73,19 +75,26 @@ buttons_frame.pack(side="left", fill="y", padx=20)
 scrollable_frame = tk.Frame(buttons_frame, bg="#0a2a2f")
 scrollable_frame.pack(side="left", fill="y", expand=True)
 
-# ---------- Image Display Frames ----------
+# Image display frame
 image_frame = tk.Frame(main_frame, bg="#0a2a2f", bd=2, relief="groove")
 image_frame.pack(side="right", expand=True, fill="both", padx=20)
 
-img_label = tk.Label(image_frame, bg="#0a2a2f")
-img_label.pack(side="left", expand=True, padx=10)
+title_label = tk.Label(image_frame, text="Original Image                                         Result Image",
+                       fg="white", bg="#0a2a2f", font=("Arial", 16, "bold"))
+title_label.pack(pady=(10,20))
 
-res_label = tk.Label(image_frame, bg="#0a2a2f")
-res_label.pack(side="right", expand=True, padx=10)
+images_holder = tk.Frame(image_frame, bg="#0a2a2f")
+images_holder.pack(expand=True, fill="both")
 
+original_label = tk.Label(images_holder, bg="#0a2a2f")
+original_label.pack(side="left", expand=True)
+
+result_label = tk.Label(images_holder, bg="#0a2a2f")
+result_label.pack(side="right", expand=True)
 # ---------- Title ----------
 tk.Label(scrollable_frame, text="Morphological Operations", fg="white", bg="#0a2a2f",
          font=("Arial", 20, "bold")).pack(pady=(10, 20))
+tk.Frame(scrollable_frame, height = 1, bg = "#2d6b74").pack(fill = "x", pady = (0, 10))
 
 # ---------- Button Utility ----------
 def create_button(text, command):
@@ -111,13 +120,14 @@ def load_image():
         img = cv2.resize(img, (500, 500))
         original_image = img
         result_image = None
-        display_image(img_label, original_image)
+        display_image(original_label, original_image)
 
 def save_result():
     if result_image is not None:
         file_path = filedialog.asksaveasfilename(defaultextension=".png")
         if file_path:
             cv2.imwrite(file_path, result_image)
+            messagebox.showinfo("Success", "Image saved successfully!")
 
 def apply_operation(op):
     global result_image
@@ -125,18 +135,26 @@ def apply_operation(op):
         messagebox.showerror("Error", "No image loaded!")
         return
     result_image = op(original_image)
-    display_image(res_label, result_image)
-
-def apply_blur(image: np.ndarray) -> np.ndarray:
-    return cv2.GaussianBlur(image, (5, 5), 0)
+    display_image(result_label, result_image)
 
 def clear_image():
     global original_image, result_image
     original_image = None
     result_image = None
-    img_label.config(image='')
-    res_label.config(image='')
-    messagebox.showinfo("Info", "Images cleared!")
+    original_label.config(image='')
+    result_label.config(image='')
+    
+    
+def go_back():
+    subprocess.Popen(["python", "main_gui" + ".py"])
+    root.destroy()
+    
+def disable_close():
+    pass  # Do nothing when "X" is clicked
+
+
+# Override the close button behavior
+root.protocol("WM_DELETE_WINDOW", disable_close)
 
 # ---------- Buttons ----------
 create_button("Load Image", load_image)
@@ -147,8 +165,8 @@ create_button("Internal Boundary", lambda: apply_operation(internal_boundary))
 create_button("External Boundary", lambda: apply_operation(external_boundary))
 create_button("Morphological Gradient", lambda: apply_operation(morphological_gradient))
 create_button("Sobel Edge Detection", lambda: apply_operation(Sobel))
-create_button("Blur", lambda: apply_operation(apply_blur))
 create_button("Clear Image", clear_image)
 create_button("Save Result", save_result)
+create_button("Back", go_back)
 
 root.mainloop()
